@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# models
+dino_deits8.onnx
+
+# samples
+probing_vits_9_0.png
+
+# simulator
+iCubSim
+_yarp.pyd
+yarp.py
