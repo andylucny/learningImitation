@@ -25,5 +25,10 @@ the person whistles for a longer time and the imitation phase starts.
 The system learns in the one-shot way though it does contain the posture representation of the seen body, it just associates features provided by the backbone to the feature vectors of the robot's actions.
 The operation is not sensitive on e.g. dress of the person or the color of the wall since the association is provided the Attention mechanism. 
 That provides also general ability to imitate somehow any person posture. Of course, the quality is good for the shown poses only or poses that can be mixed from the shown ones.
+Integration is provided by the blackboard architecture in agentspace.py.
+
+teaser video: https://youtu.be/-3BVbU9BeRE
 
 Citation: Lucny Andrej: Towards one-shot Learning via Attention. Workshop on the Natural Computing. ITAT 2022, Zuberec, Slovakia.
+
+Andrej Lucny, Comenius University, Bratislava 2022
