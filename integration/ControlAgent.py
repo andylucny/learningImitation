@@ -42,7 +42,11 @@ class ControlAgent(Agent):
         if whistling > 0:
             Space.write("whistle",0,validity=1,priority=2)
             if whistling == 2:
-                self.mode = 2-self.mode
+                self.mode = 1-self.mode
+                if self.mode == 0:
+                    self.keys = []
+                    self.values = []
+                    self.k = -1
 
         query = Space.read("features",None)
         if query is None:
