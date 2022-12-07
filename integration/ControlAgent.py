@@ -66,12 +66,12 @@ class ControlAgent(Agent):
                     print("mapping")
                     self.keys.append(query)
                     self.values.append(self.acted)
-                    #np.savetxt("keys.npy",np.array(self.keys))
-                    #np.savetxt("values.npy",np.array(self.values))
+                    np.savetxt("keys.npy",np.array(self.keys))
+                    np.savetxt("values.npy",np.array(self.values))
                     self.acted = None
                     Space.write("confirm",True,validity=0.15)
         
         else: # self.mode == 1 # imitation
 
-            act = Attention(query,self.keys,self.values,len(query)**0.2)
+            act = Attention(query,self.keys,self.values,len(query)**0.5)#0.2
             Space.write("act",act)

@@ -509,6 +509,10 @@ class iCubRightEye(iCubCamera):
 class iCubLeftEye(iCubCamera):
     def __init__(self):
         super().__init__(appName,'/icubSim/cam/left')
+        
+class iCubGlobalCamera(iCubCamera):
+    def __init__(self):
+        super().__init__(appName,'/icubSim/cam')
 
 def coord(torso, arm):
     thetas = torso.get()+arm.get()
