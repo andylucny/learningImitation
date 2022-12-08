@@ -27,8 +27,9 @@ The operation is not sensitive on e.g. dress of the person or the color of the w
 That provides also general ability to imitate somehow any person posture. Of course, the quality is good for the shown poses only or poses that can be mixed from the shown ones.
 Integration is provided by the blackboard architecture in agentspace.py.
 
-teaser video: https://youtu.be/-3BVbU9BeRE
+teaser video: https://youtu.be/-3BVbU9BeRE (fair imitation) https://youtu.be/_CBnCOnWRdY (cheating)
 
 Citation: Lucny Andrej: Towards one-shot Learning via Attention. Workshop on the Natural Computing. ITAT 2022, Zuberec, Slovakia.
+https://ceur-ws.org/Vol-3226/invited4.pdf
 
 Andrej Lucny, Comenius University, Bratislava 2022
