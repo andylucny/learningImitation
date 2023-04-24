@@ -25,8 +25,6 @@ if not os.path.exists(decoder):
     if not os.path.exists(decoder):
         print(decoder,'is missing')
         os._exit(0)
-from bgremover import download
-download()
 
 # get image from the global camera
 RecorderAgent()

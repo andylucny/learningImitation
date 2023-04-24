@@ -68,10 +68,11 @@ class ControlAgent(Agent):
                     self.values.append(self.acted)
                     np.savetxt("keys.npy",np.array(self.keys))
                     np.savetxt("values.npy",np.array(self.values))
+                    cv2.imwrite("input"+str(self.k)+".png",Space.read("camera",None))
                     self.acted = None
                     Space.write("confirm",True,validity=0.15)
         
         else: # self.mode == 1 # imitation
 
-            act = Attention(query,self.keys,self.values,len(query)**0.5)#0.2
+            act = Attention(query,self.keys,self.values,1.0/len(query))#0.2 #len(query)**0.5
             Space.write("act",act)

@@ -64,6 +64,23 @@ import socket
 import re
 import time
 
+appName = '/app/client'
+ipAddress = 'localhost'
+
+def iCubApplicationName(name):
+    global appName
+    appName = name
+
+def setApplicationName(name):
+    iCubApplicationName(name)
+
+def iCubIP(ip='192.168.56.1'):
+    global ipAddress
+    ipAddress = ip
+
+def setIP(ip='192.168.56.1'):
+    iCubIP(ip)
+
 class NoYarp:
     # parse respose from naming service
     @staticmethod
@@ -113,12 +130,19 @@ class Yarp:
             print('Yarp initialized')
     
 class iCubLimb:
+    local_names = []
     def __init__(self,app_name,port_name):
         Yarp.initialize()
         # prepare a property object
+        local_name = app_name+port_name
+        h = 0
+        while local_name in iCubLimb.local_names:
+            local_name = app_name+str(h)+port_name
+            h += 1
+        iCubLimb.local_names.append(local_name)
         self.props = yarp.Property()
         self.props.put('device','remote_controlboard')
-        self.props.put('local',app_name+port_name)
+        self.props.put('local',local_name)
         self.props.put('remote',port_name)
         # create remote driver
         self.armDriver = yarp.PolyDriver(self.props)
@@ -166,6 +190,7 @@ class iCubCamera:
     def __init__(self,app_name,port_name):
         Yarp.initialize()
         # open recipient port
+        self.port_name = port_name
         self.port = yarp.Port()
         self.port.open(app_name+port_name)
         yarp.delay(0.25)
@@ -201,9 +226,17 @@ class iCubCamera:
         # return shape of image provided by this camera 
         return (self.height,self.width,3)
 
+"""    
+    def set_viewpoint(self,position,orientation):
+        NoYarp.query(port_name+'/rpc',r'set_viewpoint {position[0]} {position[1]} {position[2]} {orientation[0]} {orientation[1]} {orientation[2]}'
+
+    def get_viewpoint(self,position,orientation):
+        NoYarp.query(port_name+'/rpc',r'set_viewpoint {position[0]} {position[1]} {position[2]} {orientation[0]} {orientation[1]} {orientation[2]}'
+"""
+
 class iCubEmotion:
     def __init__(self):
-        host = 'localhost' #'192.168.56.1'
+        host = ipAddress
         port_name = '/emotion/in'
         self.query = NoYarp.query(host,port_name)
         self.neutral = 'neu'
@@ -221,9 +254,9 @@ class iCubEmotion:
         NoYarp.command(self.query,commands)
 
 class iCubBall:
-    def __init__(self):
-        host = 'localhost' #'192.168.56.1'
-        port_name = '/icubSim/world'
+    def __init__(self, iCubSimName='icubSim'):
+        host = ipAddress
+        port_name = '/'+iCubSimName+'/world'
         self.query = NoYarp.query(host, port_name)
         self.get()
         
@@ -260,7 +293,7 @@ class iCubBall:
 # start simulator if it is not started yet
 def isRunning_iCubSim():
     try:
-        NoYarp.command(('localhost',10000),"query /icubSim/world")
+        NoYarp.command((ipAddress,10000),"query /icubSim/world")
         return True
     except ConnectionRefusedError:
         return False
@@ -306,6 +339,31 @@ class Kinematics:
     elbow = 6
     wrist = 8 
     palm = 10
+
+    # constraints
+    rangesTorso = [
+        [-50,50],
+        [-30,30],
+        [-9.6,69.6]
+    ]
+    rangesArm = [ # constraints for both left and right arm
+        [-94.5,9.45],
+        [0,160.8],
+        [-36.27,79.56],
+        [15.385,105.8],
+        [-90,90],
+        [-90,0],
+        [-19.8,39.6],
+        [0,60],
+        [9.6,89.6],
+        [0,90],
+        [0,80],
+        [0,90],
+        [0,80],
+        [0,90],
+        [0,80],
+        [0,270]
+    ]
     
     # standard position
     poseA = (0.0,0.0,0.0) + (-80.0,80.0,0.0,50.0,0.0,0.0,0.0,59.0,20.0,20.0,20.0,10.0,10.0,10.0,10.0,10.0)
@@ -360,30 +418,7 @@ class Kinematics:
     # inverse kinematics (FABRIK algorithm modified for D-H convention, need to be fixed)
     @staticmethod
     def inverseRightArm(goal,first,last): # first and last are from 1 to 10, e.g. Kinematics.shoulder, Kinematics.wrist
-        rangesTorso = [
-            [-50,50],
-            [-30,30],
-            [-9.6,69.6]
-        ]
-        rangesArm = [ # constraints for both left and right arm
-            [-94.5,9.45],
-            [0,160.8],
-            [-36.27,79.56],
-            [15.385,105.8],
-            [-90,90],
-            [-90,0],
-            [-19.8,39.6],
-            [0,60],
-            [9.6,89.6],
-            [0,90],
-            [0,80],
-            [0,90],
-            [0,80],
-            [0,90],
-            [0,80],
-            [0,270]
-        ]
-        ranges = np.array(rangesTorso+rangesArm)
+        ranges = np.array(Kinematics.rangesTorso+Kinematics.rangesArm)
         thetas = np.array(Kinematics.poseA)[:11] # pose A
         goal = np.array(goal)
         dts = 1.0
@@ -454,65 +489,63 @@ class Kinematics:
         thetas, achieved, distance, iterations = Kinematics.inverseRightArm(g,first,last)
         return (-thetas[0],-thetas[1])+thetas[2:], achieved, distance, iterations
 
-appName = '/app/client'
+def checkConstraints(angles, ranges):
+    return [ min(max(angle,range[0]),range[1]) for angle, range in zip(angles, ranges) ]
 
-def setApplicationName(name):
-    appName = name
-    
-def iCubApplicationName(name):
-    appName = name
-        
+def checkArmConstraints(angles):
+    return checkConstraints(angles, Kinematics.rangesArm[:len(angles)])
+
 class iCubRightArm(iCubLimb):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/right_arm')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/right_arm')
     def isRight(self):
         return True
     def reset(self):
         self.set(Kinematics.poseA[3:])
        
 class iCubLeftArm(iCubLimb):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/left_arm')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/left_arm')
     def isRight(self):
         return False
     def reset(self):
         self.set(Kinematics.poseA[3:])
 
 class iCubTorso(iCubLimb):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/torso')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/torso')
     def reset(self):
         self.set(Kinematics.poseA[:3])
 
 class iCubHead(iCubLimb):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/head')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/head')
     def reset(self):
         self.set((0,0,0,0,0,0))
 
 class iCubRightLeg(iCubLimb):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/right_leg')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/right_leg')
     def reset(self):
         self.set((0,0,0,0,0,0))
         
 class iCubLeftLeg(iCubLimb):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/left_leg')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/left_leg')
     def reset(self):
         self.set((0,0,0,0,0,0))
 
 class iCubRightEye(iCubCamera):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/cam/right')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/cam/right')
 
 class iCubLeftEye(iCubCamera):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/cam/left')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/cam/left')
         
 class iCubGlobalCamera(iCubCamera):
-    def __init__(self):
-        super().__init__(appName,'/icubSim/cam')
+    def __init__(self, iCubSimName='icubSim'):
+        super().__init__(appName,'/'+iCubSimName+'/cam')
 
 def coord(torso, arm):
     thetas = torso.get()+arm.get()
